@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maison Laundrin — Avatar Intelligence Hub</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- HEADER -->
+        <header id="header">
+            <div class="header-inner">
+                <div class="brand">
+                    <h1>Maison Laundrin</h1>
+                    <span class="subtitle">Avatar Intelligence Hub</span>
+                </div>
+                <div class="search-wrap">
+                    <input type="text" id="search" placeholder="Search avatars, pain points, quotes, ads..." autocomplete="off">
+                    <span class="search-icon">&#x1F50D;</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <main id="dashboard" class="view active">
+            <div class="tier-label">Tier 1 — Core Buyers</div>
+            <div id="grid-tier1" class="avatar-grid"></div>
+            <div class="tier-label tier-2">Tier 2 — Niche Pain Points</div>
+            <div id="grid-tier2" class="avatar-grid"></div>
+        </main>
+
+        <!-- SEARCH RESULTS VIEW -->
+        <main id="search-results" class="view">
+            <div class="results-header">
+                <button class="back-btn" onclick="clearSearch()">&larr; Back to Dashboard</button>
+                <h2 id="search-results-title">Search Results</h2>
+            </div>
+            <div id="search-results-list"></div>
+        </main>
+
+        <!-- PROFILE VIEW -->
+        <main id="profile" class="view">
+            <div class="profile-nav">
+                <button class="back-btn" id="back-btn">&larr; All Avatars</button>
+                <div class="profile-nav-arrows">
+                    <button class="nav-arrow" id="prev-btn">&larr; Prev</button>
+                    <button class="nav-arrow" id="next-btn">Next &rarr;</button>
+                </div>
+            </div>
+
+            <div class="profile-header" id="profile-header"></div>
+
+            <div class="profile-body">
+                <div class="tabs" id="tabs">
+                    <button class="tab active" data-tab="overview">Overview</button>
+                    <button class="tab" data-tab="pain">Pain Points</button>
+                    <button class="tab" data-tab="language">Language Bank</button>
+                    <button class="tab" data-tab="messaging">Messaging</button>
+                    <button class="tab" data-tab="ads">Ad Creative</button>
+                    <button class="tab" data-tab="targeting">Targeting</button>
+                </div>
+
+                <div class="tab-content" id="tab-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="toast">Copied to clipboard!</div>
+
+    <script src="data/avatars.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
