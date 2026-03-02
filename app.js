@@ -1,14 +1,17 @@
 /* =============================================
    MAISON LAUNDRIN — AVATAR INTELLIGENCE HUB
-   Core application logic
+   Core application logic (v2 — with Research layer)
    ============================================= */
 
 let currentAvatarIndex = 0;
 let currentTab = 'overview';
+let activeFilter = 'all';
 
 // ---- INITIALIZATION ----
 document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
+    renderFilterBar();
+    renderCompetitorOverview();
     bindEvents();
 });
 
@@ -20,6 +23,11 @@ function bindEvents() {
     document.getElementById('tabs').addEventListener('click', e => {
         if (e.target.classList.contains('tab')) {
             setTab(e.target.dataset.tab);
+        }
+    });
+    document.getElementById('filter-bar').addEventListener('click', e => {
+        if (e.target.classList.contains('filter-tag')) {
+            setFilter(e.target.dataset.filter);
         }
     });
     document.addEventListener('click', e => {
@@ -51,18 +59,65 @@ function showDashboard() {
     window.scrollTo(0, 0);
 }
 
+// ---- FILTER BAR ----
+function renderFilterBar() {
+    if (typeof RESEARCH === 'undefined' || !RESEARCH.themes) return;
+    const bar = document.getElementById('filter-bar');
+    const existing = bar.querySelector('.filter-tag[data-filter="all"]');
+    let html = '';
+    RESEARCH.themes.forEach(t => {
+        html += `<button class="filter-tag" data-filter="${t.id}">${t.label}</button>`;
+    });
+    existing.insertAdjacentHTML('afterend', html);
+}
+
+function setFilter(filterId) {
+    activeFilter = filterId;
+    document.querySelectorAll('.filter-tag').forEach(f => {
+        f.classList.toggle('active', f.dataset.filter === filterId);
+    });
+    renderDashboard();
+}
+
 // ---- DASHBOARD ----
 function renderDashboard() {
-    const tier1 = AVATARS.filter(a => a.tier === 1);
-    const tier2 = AVATARS.filter(a => a.tier === 2);
-    document.getElementById('grid-tier1').innerHTML = tier1.map(a => renderCard(a)).join('');
-    document.getElementById('grid-tier2').innerHTML = tier2.map(a => renderCard(a)).join('');
+    let avatars = AVATARS;
+    if (activeFilter !== 'all' && typeof RESEARCH !== 'undefined' && RESEARCH.themes) {
+        const theme = RESEARCH.themes.find(t => t.id === activeFilter);
+        if (theme) {
+            avatars = AVATARS.filter(a => theme.avatarIds.includes(a.id));
+        }
+    }
+
+    const tier1 = avatars.filter(a => a.tier === 1);
+    const tier2 = avatars.filter(a => a.tier === 2);
+
+    const t1El = document.getElementById('grid-tier1');
+    const t2El = document.getElementById('grid-tier2');
+    const t1Label = t1El.previousElementSibling;
+    const t2Label = t2El.previousElementSibling;
+
+    t1El.innerHTML = tier1.map(a => renderCard(a)).join('');
+    t2El.innerHTML = tier2.map(a => renderCard(a)).join('');
+
+    t1Label.style.display = tier1.length ? '' : 'none';
+    t1El.style.display = tier1.length ? '' : 'none';
+    t2Label.style.display = tier2.length ? '' : 'none';
+    t2El.style.display = tier2.length ? '' : 'none';
 }
 
 function renderCard(a) {
     const painDots = Array.from({length: 5}, (_, i) =>
         `<span class="pain-dot ${i < a.painIntensity ? 'active' : ''}"></span>`
     ).join('');
+
+    // Count research items if available
+    let researchCount = 0;
+    if (typeof RESEARCH !== 'undefined') {
+        researchCount += (RESEARCH.objections[a.id] || []).length;
+        researchCount += (RESEARCH.socialProof[a.id] || []).length;
+        researchCount += (RESEARCH.competitors[a.id] || []).length;
+    }
 
     return `
     <div class="avatar-card" onclick="openProfile(${a.id})">
@@ -72,11 +127,43 @@ function renderCard(a) {
             <div class="card-age">${a.ageRange}</div>
         </div>
         <div class="card-wound">${a.coreWound}</div>
-        <div class="pain-bar">
-            <div class="pain-dots">${painDots}</div>
-            <span>Pain intensity</span>
+        <div class="card-footer">
+            <div class="pain-bar">
+                <div class="pain-dots">${painDots}</div>
+                <span>Pain intensity</span>
+            </div>
+            ${researchCount > 0 ? `<span class="research-badge">${researchCount} research items</span>` : ''}
         </div>
     </div>`;
+}
+
+// ---- COMPETITOR OVERVIEW ----
+function renderCompetitorOverview() {
+    if (typeof RESEARCH === 'undefined' || !RESEARCH.competitorOverview) return;
+    const el = document.getElementById('competitor-overview');
+    el.innerHTML = `<div class="competitor-grid">${RESEARCH.competitorOverview.map(c => `
+        <div class="competitor-card">
+            <div class="comp-header">
+                <div class="comp-name">${c.brand}</div>
+                <div class="comp-price">${c.price}</div>
+            </div>
+            <div class="comp-rating">${c.rating}</div>
+            <div class="comp-lists">
+                <div class="comp-strengths">
+                    <div class="comp-list-label strengths-label">Strengths</div>
+                    <ul>${c.strengths.map(s => `<li>${s}</li>`).join('')}</ul>
+                </div>
+                <div class="comp-weaknesses">
+                    <div class="comp-list-label weaknesses-label">Weaknesses</div>
+                    <ul>${c.weaknesses.map(w => `<li>${w}</li>`).join('')}</ul>
+                </div>
+            </div>
+            ${c.keyQuote ? `<div class="comp-quote">"${c.keyQuote}"</div>` : ''}
+            <div class="comp-ml-angle">
+                <span class="comp-ml-label">ML Advantage:</span> ${c.mlAngle}
+            </div>
+        </div>
+    `).join('')}</div>`;
 }
 
 // ---- PROFILE ----
@@ -97,6 +184,11 @@ function navigateAvatar(dir) {
 function renderProfile() {
     const a = AVATARS[currentAvatarIndex];
 
+    // Count research items
+    const objCount = typeof RESEARCH !== 'undefined' ? (RESEARCH.objections[a.id] || []).length : 0;
+    const proofCount = typeof RESEARCH !== 'undefined' ? (RESEARCH.socialProof[a.id] || []).length : 0;
+    const compCount = typeof RESEARCH !== 'undefined' ? (RESEARCH.competitors[a.id] || []).length : 0;
+
     document.getElementById('profile-header').innerHTML = `
         <div class="ph-top">
             <div>
@@ -114,12 +206,12 @@ function renderProfile() {
                     <div class="ph-stat-label">Ad Angles</div>
                 </div>
                 <div class="ph-stat">
-                    <div class="ph-stat-value">${a.languagePatterns.length}</div>
-                    <div class="ph-stat-label">Language Patterns</div>
+                    <div class="ph-stat-value">${proofCount}</div>
+                    <div class="ph-stat-label">Proof Quotes</div>
                 </div>
                 <div class="ph-stat">
-                    <div class="ph-stat-value">${a.triggerMoments.length}</div>
-                    <div class="ph-stat-label">Triggers</div>
+                    <div class="ph-stat-value">${objCount}</div>
+                    <div class="ph-stat-label">Objections</div>
                 </div>
             </div>
         </div>
@@ -151,6 +243,9 @@ function renderTabContent() {
         case 'pain': el.innerHTML = renderPainPoints(a); break;
         case 'language': el.innerHTML = renderLanguage(a); break;
         case 'messaging': el.innerHTML = renderMessaging(a); break;
+        case 'objections': el.innerHTML = renderObjections(a); break;
+        case 'social-proof': el.innerHTML = renderSocialProof(a); break;
+        case 'competitors': el.innerHTML = renderCompetitors(a); break;
         case 'ads': el.innerHTML = renderAds(a); break;
         case 'targeting': el.innerHTML = renderTargeting(a); break;
     }
@@ -159,6 +254,22 @@ function renderTabContent() {
 // ---- TAB RENDERERS ----
 
 function renderOverview(a) {
+    // Include market data if available
+    let marketHtml = '';
+    if (typeof RESEARCH !== 'undefined' && RESEARCH.marketData && RESEARCH.marketData[a.id]) {
+        const data = RESEARCH.marketData[a.id];
+        marketHtml = `
+            <div class="section-title">Market Intelligence</div>
+            ${data.map(d => `
+                <div class="content-block market-stat" data-copy="${esc(d.stat)}">
+                    <button class="copy-btn">Copy</button>
+                    <p>${d.stat}</p>
+                    <div class="market-source">${d.source}</div>
+                </div>
+            `).join('')}
+        `;
+    }
+
     return `
         <div class="section-title">Core Wound</div>
         <div class="content-block" data-copy="${esc(a.coreWound)}">
@@ -206,6 +317,8 @@ function renderOverview(a) {
                 <p>${s}</p>
             </div>
         `).join('')}
+
+        ${marketHtml}
 
         <div class="section-title">Recommended Scent</div>
         <div class="content-block">
@@ -307,6 +420,124 @@ function renderMessaging(a) {
     return html;
 }
 
+// ---- NEW TABS ----
+
+function renderObjections(a) {
+    if (typeof RESEARCH === 'undefined' || !RESEARCH.objections[a.id]) {
+        return '<p style="color:var(--text-muted);padding:40px 0;text-align:center;">No objection data available.</p>';
+    }
+
+    const objections = RESEARCH.objections[a.id];
+    const typeColors = {
+        price: 'var(--gold)',
+        guilt: 'var(--accent-red)',
+        skepticism: 'var(--accent-blue)',
+        trust: 'var(--silver)',
+        emotional: '#9b59b6',
+        sensitivity: '#e67e22'
+    };
+
+    return `
+        <div class="section-title">Objection Bank (${objections.length} objections mapped)</div>
+        <p class="section-subtitle">Each objection includes the counter-argument for copy and sales pages.</p>
+        ${objections.map(obj => `
+            <div class="objection-card">
+                <div class="objection-header">
+                    <span class="objection-type" style="color:${typeColors[obj.type] || 'var(--text-muted)'}">${obj.type.toUpperCase()}</span>
+                </div>
+                <div class="objection-text" data-copy="${esc(obj.objection)}">
+                    <button class="copy-btn">Copy</button>
+                    <div class="objection-label">She says:</div>
+                    <p>"${obj.objection}"</p>
+                </div>
+                <div class="counter-text" data-copy="${esc(obj.counter)}">
+                    <button class="copy-btn">Copy</button>
+                    <div class="counter-label">Counter:</div>
+                    <p>${obj.counter}</p>
+                </div>
+            </div>
+        `).join('')}
+    `;
+}
+
+function renderSocialProof(a) {
+    if (typeof RESEARCH === 'undefined' || !RESEARCH.socialProof[a.id]) {
+        return '<p style="color:var(--text-muted);padding:40px 0;text-align:center;">No social proof data available.</p>';
+    }
+
+    const quotes = RESEARCH.socialProof[a.id];
+    const themes = [...new Set(quotes.map(q => q.theme))];
+    const themeLabels = {
+        compliment: 'Compliment Effect',
+        identity: 'Identity & Visibility',
+        addiction: 'Addiction / Obsession',
+        discovery: 'Discovery Stories',
+        ritual: 'Self-Care & Ritual',
+        hotel: 'Hotel / Luxury Fantasy',
+        switching: 'Switching Behavior',
+        gifting: 'Gifting Patterns',
+        dating: 'Dating & Attraction',
+        grief: 'Grief & Scent Memory',
+        menopause: 'Body Changes',
+        value: 'Price Justification',
+        transformation: 'Fresh Start / Transformation',
+        perfume: 'Scent as Perfume Replacement'
+    };
+
+    let html = `<div class="section-title">Social Proof Bank (${quotes.length} quotes)</div>`;
+    html += `<p class="section-subtitle">Real customer quotes from Amazon, Reddit, TikTok, and forums — mapped to this avatar.</p>`;
+
+    // Group by theme
+    themes.forEach(theme => {
+        const themeQuotes = quotes.filter(q => q.theme === theme);
+        html += `<div class="section-title" style="margin-top:24px">${themeLabels[theme] || theme} (${themeQuotes.length})</div>`;
+        themeQuotes.forEach(q => {
+            html += `
+                <div class="quote-block social-proof-quote" data-copy="${esc(q.quote)}">
+                    <button class="copy-btn">Copy</button>
+                    <div class="quote-text">"${q.quote}"</div>
+                    <div class="quote-source">— ${q.source}</div>
+                </div>
+            `;
+        });
+    });
+
+    return html;
+}
+
+function renderCompetitors(a) {
+    if (typeof RESEARCH === 'undefined' || !RESEARCH.competitors[a.id]) {
+        return '<p style="color:var(--text-muted);padding:40px 0;text-align:center;">No competitor data available.</p>';
+    }
+
+    const comps = RESEARCH.competitors[a.id];
+
+    return `
+        <div class="section-title">Competitor Intelligence for ${a.name}</div>
+        <p class="section-subtitle">What she's tried, why it failed, and how Maison Laundrin wins.</p>
+        ${comps.map(c => `
+            <div class="comp-detail-card">
+                <div class="comp-detail-name">${c.brand}</div>
+                <div class="comp-detail-row">
+                    <div class="comp-detail-section tried">
+                        <div class="comp-detail-label">Why She Tried It</div>
+                        <p>${c.whySheTried}</p>
+                    </div>
+                    <div class="comp-detail-section failed">
+                        <div class="comp-detail-label">Why It Failed</div>
+                        <p>${c.whyItFailed}</p>
+                    </div>
+                    <div class="comp-detail-section advantage" data-copy="${esc(c.mlAdvantage)}">
+                        <button class="copy-btn">Copy</button>
+                        <div class="comp-detail-label">Maison Laundrin Wins Because</div>
+                        <p>${c.mlAdvantage}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('')}
+    `;
+}
+
 function renderAds(a) {
     return a.adCreative.map((ad, i) => `
         <div class="ad-card" data-copy="${esc(ad.primaryText)}">
@@ -379,7 +610,7 @@ function renderTargeting(a) {
     return html;
 }
 
-// ---- SEARCH ----
+// ---- SEARCH (expanded to include research data) ----
 function handleSearch(e) {
     const q = e.target.value.trim().toLowerCase();
     if (q.length < 2) {
@@ -389,7 +620,7 @@ function handleSearch(e) {
 
     const results = [];
     AVATARS.forEach(a => {
-        // Search through all text fields
+        // Search through all existing text fields
         const searchFields = [
             { context: 'Core Wound', text: a.coreWound },
             { context: 'Tagline', text: a.tagline },
@@ -411,6 +642,32 @@ function handleSearch(e) {
             ...(a.messagingFramework ? (a.messagingFramework.dos || []).map(d => ({ context: 'Messaging Do', text: d })) : []),
             ...(a.messagingFramework ? (a.messagingFramework.donts || []).map(d => ({ context: 'Messaging Don\'t', text: d })) : []),
         ];
+
+        // Add research data to search
+        if (typeof RESEARCH !== 'undefined') {
+            if (RESEARCH.objections[a.id]) {
+                RESEARCH.objections[a.id].forEach(obj => {
+                    searchFields.push({ context: 'Objection', text: obj.objection });
+                    searchFields.push({ context: 'Objection Counter', text: obj.counter });
+                });
+            }
+            if (RESEARCH.socialProof[a.id]) {
+                RESEARCH.socialProof[a.id].forEach(sp => {
+                    searchFields.push({ context: `Social Proof (${sp.theme})`, text: sp.quote });
+                });
+            }
+            if (RESEARCH.competitors[a.id]) {
+                RESEARCH.competitors[a.id].forEach(c => {
+                    searchFields.push({ context: `Competitor: ${c.brand}`, text: c.whyItFailed });
+                    searchFields.push({ context: `ML vs ${c.brand}`, text: c.mlAdvantage });
+                });
+            }
+            if (RESEARCH.marketData && RESEARCH.marketData[a.id]) {
+                RESEARCH.marketData[a.id].forEach(md => {
+                    searchFields.push({ context: 'Market Data', text: md.stat });
+                });
+            }
+        }
 
         searchFields.forEach(field => {
             if (field.text && field.text.toLowerCase().includes(q)) {

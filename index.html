@@ -16,7 +16,7 @@
                     <span class="subtitle">Avatar Intelligence Hub</span>
                 </div>
                 <div class="search-wrap">
-                    <input type="text" id="search" placeholder="Search avatars, pain points, quotes, ads..." autocomplete="off">
+                    <input type="text" id="search" placeholder="Search avatars, pain points, quotes, ads, objections..." autocomplete="off">
                     <span class="search-icon">&#x1F50D;</span>
                 </div>
             </div>
@@ -24,10 +24,20 @@
 
         <!-- DASHBOARD VIEW -->
         <main id="dashboard" class="view active">
+            <!-- Theme Filters -->
+            <div class="filter-bar" id="filter-bar">
+                <span class="filter-label">Filter by theme:</span>
+                <button class="filter-tag active" data-filter="all">All Avatars</button>
+            </div>
+
             <div class="tier-label">Tier 1 — Core Buyers</div>
             <div id="grid-tier1" class="avatar-grid"></div>
             <div class="tier-label tier-2">Tier 2 — Niche Pain Points</div>
             <div id="grid-tier2" class="avatar-grid"></div>
+
+            <!-- Competitor Overview -->
+            <div class="tier-label" style="margin-top:48px;color:var(--accent-blue)">Competitive Landscape</div>
+            <div id="competitor-overview"></div>
         </main>
 
         <!-- SEARCH RESULTS VIEW -->
@@ -57,6 +67,9 @@
                     <button class="tab" data-tab="pain">Pain Points</button>
                     <button class="tab" data-tab="language">Language Bank</button>
                     <button class="tab" data-tab="messaging">Messaging</button>
+                    <button class="tab" data-tab="objections">Objections</button>
+                    <button class="tab" data-tab="social-proof">Social Proof</button>
+                    <button class="tab" data-tab="competitors">Competitors</button>
                     <button class="tab" data-tab="ads">Ad Creative</button>
                     <button class="tab" data-tab="targeting">Targeting</button>
                 </div>
@@ -69,6 +82,7 @@
     <div id="toast" class="toast">Copied to clipboard!</div>
 
     <script src="data/avatars.js"></script>
+    <script src="data/research.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
