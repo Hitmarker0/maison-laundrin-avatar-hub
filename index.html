@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maison Laundrin — Avatar Intelligence Hub</title>
+    <title>Maison Laundrin — Marketing Operations Command Center</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,16 +13,28 @@
             <div class="header-inner">
                 <div class="brand">
                     <h1>Maison Laundrin</h1>
-                    <span class="subtitle">Avatar Intelligence Hub</span>
+                    <span class="subtitle">Marketing Operations Command Center</span>
                 </div>
                 <div class="search-wrap">
-                    <input type="text" id="search" placeholder="Search avatars, pain points, quotes, ads, objections..." autocomplete="off">
+                    <input type="text" id="search" placeholder="Search avatars, ads, research, performance..." autocomplete="off">
                     <span class="search-icon">&#x1F50D;</span>
                 </div>
             </div>
         </header>
 
-        <!-- DASHBOARD VIEW -->
+        <!-- TOP NAV -->
+        <nav id="top-nav" class="top-nav">
+            <div class="nav-inner">
+                <button class="nav-pill active" data-nav="avatars">Avatars</button>
+                <button class="nav-pill" data-nav="performance">Performance</button>
+                <button class="nav-pill" data-nav="pipeline">Research</button>
+                <button class="nav-pill" data-nav="adlab">Ad Lab</button>
+                <button class="nav-pill" data-nav="testing">Testing</button>
+                <button class="nav-pill" data-nav="hub">Hub</button>
+            </div>
+        </nav>
+
+        <!-- DASHBOARD VIEW (Avatars) -->
         <main id="dashboard" class="view active">
             <!-- Theme Filters -->
             <div class="filter-bar" id="filter-bar">
@@ -40,10 +52,120 @@
             <div id="competitor-overview"></div>
         </main>
 
+        <!-- PERFORMANCE VIEW -->
+        <main id="performance-view" class="view">
+            <div class="view-header">
+                <h2 class="view-title">Performance Dashboard</h2>
+                <div class="view-meta" id="perf-sync-meta"></div>
+            </div>
+            <div id="perf-kpi-cards" class="kpi-grid"></div>
+            <div id="perf-daily-trend" class="daily-trend-section"></div>
+            <div class="section-title" style="margin-top:32px">Per-Avatar Performance</div>
+            <div id="perf-avatar-grid" class="perf-avatar-grid"></div>
+            <div class="section-title" style="margin-top:32px">Ad Leaderboard</div>
+            <div id="perf-leaderboard" class="leaderboard-section"></div>
+        </main>
+
+        <!-- PIPELINE VIEW (Research) -->
+        <main id="pipeline-view" class="view">
+            <div class="view-header">
+                <h2 class="view-title">Research Pipeline</h2>
+                <div class="view-meta" id="pipeline-meta"></div>
+            </div>
+            <div class="pipeline-filters" id="pipeline-filters">
+                <div class="pipeline-filter-group">
+                    <span class="filter-label">Type:</span>
+                    <button class="filter-tag active" data-ptype="all">All</button>
+                    <button class="filter-tag" data-ptype="quote">Quotes</button>
+                    <button class="filter-tag" data-ptype="insight">Insights</button>
+                    <button class="filter-tag" data-ptype="competitor">Competitor</button>
+                    <button class="filter-tag" data-ptype="market">Market</button>
+                    <button class="filter-tag" data-ptype="idea">Ideas</button>
+                </div>
+                <div class="pipeline-filter-group">
+                    <span class="filter-label">Status:</span>
+                    <button class="filter-tag active" data-pstatus="all">All</button>
+                    <button class="filter-tag" data-pstatus="new">New</button>
+                    <button class="filter-tag" data-pstatus="reviewed">Reviewed</button>
+                    <button class="filter-tag" data-pstatus="integrated">Integrated</button>
+                </div>
+            </div>
+            <div id="pipeline-feed" class="pipeline-feed"></div>
+        </main>
+
+        <!-- AD LAB VIEW -->
+        <main id="adlab-view" class="view">
+            <div class="view-header">
+                <h2 class="view-title">Ad Lab</h2>
+                <div class="view-meta" id="adlab-meta"></div>
+            </div>
+            <div id="adlab-status-bar" class="adlab-status-bar"></div>
+            <div class="adlab-filters" id="adlab-filters">
+                <div class="pipeline-filter-group">
+                    <span class="filter-label">Avatar:</span>
+                    <select id="adlab-avatar-filter" class="filter-select">
+                        <option value="all">All Avatars</option>
+                    </select>
+                </div>
+                <div class="pipeline-filter-group">
+                    <span class="filter-label">Status:</span>
+                    <button class="filter-tag active" data-adstatus="all">All</button>
+                    <button class="filter-tag" data-adstatus="draft">Draft</button>
+                    <button class="filter-tag" data-adstatus="testing">Testing</button>
+                    <button class="filter-tag" data-adstatus="winner">Winner</button>
+                    <button class="filter-tag" data-adstatus="killed">Killed</button>
+                </div>
+                <div class="pipeline-filter-group">
+                    <span class="filter-label">Format:</span>
+                    <button class="filter-tag active" data-adformat="all">All</button>
+                    <button class="filter-tag" data-adformat="single_image">Image</button>
+                    <button class="filter-tag" data-adformat="video">Video</button>
+                    <button class="filter-tag" data-adformat="carousel">Carousel</button>
+                </div>
+            </div>
+            <div id="adlab-list" class="adlab-list"></div>
+        </main>
+
+        <!-- TESTING VIEW -->
+        <main id="testing-view" class="view">
+            <div class="view-header">
+                <h2 class="view-title">Creative Testing</h2>
+                <div class="view-meta" id="testing-meta"></div>
+            </div>
+            <div class="section-title">Pattern Insights</div>
+            <div id="testing-patterns" class="testing-patterns"></div>
+            <div class="section-title" style="margin-top:32px">Active Tests</div>
+            <div id="testing-active" class="testing-list"></div>
+            <div class="section-title" style="margin-top:32px">Completed Tests</div>
+            <div id="testing-completed" class="testing-list"></div>
+            <div class="section-title" style="margin-top:32px">Learnings Log</div>
+            <div id="testing-learnings" class="learnings-list"></div>
+        </main>
+
+        <!-- HUB VIEW (Integrations) -->
+        <main id="hub-view" class="view">
+            <div class="view-header">
+                <h2 class="view-title">Integrations Hub</h2>
+                <div class="view-meta" id="hub-sync-meta"></div>
+            </div>
+            <div id="hub-attribution" class="attribution-section"></div>
+            <div id="hub-budget" class="budget-section"></div>
+            <div class="hub-channels">
+                <div class="section-title" style="margin-top:32px">Meta Ads</div>
+                <div id="hub-meta" class="channel-panel"></div>
+                <div class="section-title" style="margin-top:32px">Shopify</div>
+                <div id="hub-shopify" class="channel-panel"></div>
+                <div class="section-title" style="margin-top:32px">Klaviyo</div>
+                <div id="hub-klaviyo" class="channel-panel"></div>
+            </div>
+            <div class="section-title" style="margin-top:32px">Product Leaderboard</div>
+            <div id="hub-products" class="product-leaderboard"></div>
+        </main>
+
         <!-- SEARCH RESULTS VIEW -->
         <main id="search-results" class="view">
             <div class="results-header">
-                <button class="back-btn" onclick="clearSearch()">&larr; Back to Dashboard</button>
+                <button class="back-btn" onclick="clearSearch()">&larr; Back</button>
                 <h2 id="search-results-title">Search Results</h2>
             </div>
             <div id="search-results-list"></div>
@@ -72,6 +194,7 @@
                     <button class="tab" data-tab="competitors">Competitors</button>
                     <button class="tab" data-tab="ads">Ad Creative</button>
                     <button class="tab" data-tab="targeting">Targeting</button>
+                    <button class="tab" data-tab="performance">Performance</button>
                 </div>
 
                 <div class="tab-content" id="tab-content"></div>
@@ -83,6 +206,11 @@
 
     <script src="data/avatars.js"></script>
     <script src="data/research.js"></script>
+    <script src="data/performance.js"></script>
+    <script src="data/pipeline.js"></script>
+    <script src="data/adlibrary.js"></script>
+    <script src="data/testing.js"></script>
+    <script src="data/integrations.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
