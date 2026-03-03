@@ -1,12 +1,13 @@
 /* =============================================
    MAISON LAUNDRIN — MARKETING OPERATIONS COMMAND CENTER
-   Core application logic (v3 — full ops platform)
+   Core application logic (v3.1 — all views functional)
    ============================================= */
 
 let currentAvatarIndex = 0;
 let currentTab = 'overview';
 let activeFilter = 'all';
 let currentNav = 'avatars';
+let previousNav = 'avatars'; // tracks where user came from
 
 // Pipeline filter state
 let pipelineTypeFilter = 'all';
@@ -22,13 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
     renderFilterBar();
     renderCompetitorOverview();
-    populateAdLabAvatarFilter();
     bindEvents();
 });
 
 function bindEvents() {
     document.getElementById('search').addEventListener('input', debounce(handleSearch, 300));
-    document.getElementById('back-btn').addEventListener('click', showDashboard);
+    document.getElementById('back-btn').addEventListener('click', goBack);
     document.getElementById('prev-btn').addEventListener('click', () => navigateAvatar(-1));
     document.getElementById('next-btn').addEventListener('click', () => navigateAvatar(1));
     document.getElementById('tabs').addEventListener('click', e => {
@@ -49,49 +49,43 @@ function bindEvents() {
         }
     });
 
-    // Pipeline filters
-    document.getElementById('pipeline-filters').addEventListener('click', e => {
+    // Delegated filter clicks for dynamic views
+    document.addEventListener('click', e => {
+        // Pipeline type filters
         if (e.target.dataset.ptype !== undefined) {
             pipelineTypeFilter = e.target.dataset.ptype;
             updatePipelineFilterUI();
-            renderPipelineView();
+            renderPipelineFeed();
         }
+        // Pipeline status filters
         if (e.target.dataset.pstatus !== undefined) {
             pipelineStatusFilter = e.target.dataset.pstatus;
             updatePipelineFilterUI();
-            renderPipelineView();
+            renderPipelineFeed();
         }
-    });
-
-    // Ad Lab filters
-    document.getElementById('adlab-filters').addEventListener('click', e => {
+        // Ad Lab status filters
         if (e.target.dataset.adstatus !== undefined) {
             adlabStatusFilter = e.target.dataset.adstatus;
             updateAdLabFilterUI();
-            renderAdLabView();
+            renderAdLabList();
         }
+        // Ad Lab format filters
         if (e.target.dataset.adformat !== undefined) {
             adlabFormatFilter = e.target.dataset.adformat;
             updateAdLabFilterUI();
-            renderAdLabView();
+            renderAdLabList();
         }
-    });
-
-    document.getElementById('adlab-avatar-filter').addEventListener('change', e => {
-        adlabAvatarFilter = e.target.value;
-        renderAdLabView();
-    });
-
-    // Global click delegation
-    document.addEventListener('click', e => {
+        // Copy buttons
         if (e.target.classList.contains('copy-btn')) {
             const block = e.target.closest('[data-copy]');
             if (block) copyToClipboard(block.dataset.copy);
         }
+        // Quote block tap-to-copy
         if (e.target.closest('.quote-block') && !e.target.classList.contains('copy-btn')) {
             const block = e.target.closest('.quote-block');
             if (block.dataset.copy) copyToClipboard(block.dataset.copy);
         }
+        // Collapsible sections
         if (e.target.closest('.collapsible-header')) {
             const header = e.target.closest('.collapsible-header');
             header.classList.toggle('open');
@@ -108,16 +102,25 @@ function bindEvents() {
             if (content) copyToClipboard(content.textContent);
         }
     });
+
+    // Ad Lab avatar select
+    document.addEventListener('change', e => {
+        if (e.target.id === 'adlab-avatar-filter') {
+            adlabAvatarFilter = e.target.value;
+            renderAdLabList();
+        }
+    });
 }
 
 // ---- TOP NAV ----
 function setNav(navId) {
+    previousNav = currentNav;
     currentNav = navId;
     document.querySelectorAll('.nav-pill').forEach(p => {
         p.classList.toggle('active', p.dataset.nav === navId);
     });
 
-    // Hide all views first
+    // Hide all views
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
 
     switch (navId) {
@@ -152,6 +155,11 @@ function setNav(navId) {
 function showView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+}
+
+function goBack() {
+    setNav(previousNav || 'avatars');
+    document.getElementById('search').value = '';
 }
 
 function showDashboard() {
@@ -211,7 +219,6 @@ function renderCard(a) {
         `<span class="pain-dot ${i < a.painIntensity ? 'active' : ''}"></span>`
     ).join('');
 
-    // Count research items if available
     let researchCount = 0;
     if (typeof RESEARCH !== 'undefined') {
         researchCount += (RESEARCH.objections[a.id] || []).length;
@@ -279,14 +286,12 @@ function renderCompetitorOverview() {
 
 // ---- PROFILE ----
 function openProfile(id) {
+    previousNav = currentNav;
     currentAvatarIndex = AVATARS.findIndex(a => a.id === id);
     currentTab = 'overview';
     renderProfile();
     showView('profile');
-    // Update nav to show avatars as active
-    document.querySelectorAll('.nav-pill').forEach(p => {
-        p.classList.toggle('active', p.dataset.nav === 'avatars');
-    });
+    document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
     window.scrollTo(0, 0);
 }
 
@@ -299,7 +304,6 @@ function navigateAvatar(dir) {
 function renderProfile() {
     const a = AVATARS[currentAvatarIndex];
 
-    // Count research items
     const objCount = typeof RESEARCH !== 'undefined' ? (RESEARCH.objections[a.id] || []).length : 0;
     const proofCount = typeof RESEARCH !== 'undefined' ? (RESEARCH.socialProof[a.id] || []).length : 0;
 
@@ -332,7 +336,6 @@ function renderProfile() {
         <div class="ph-tagline">"${a.tagline}"</div>
     `;
 
-    // Update active tab
     document.querySelectorAll('.tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === currentTab);
     });
@@ -369,7 +372,6 @@ function renderTabContent() {
 // ---- TAB RENDERERS ----
 
 function renderOverview(a) {
-    // Include market data if available
     let marketHtml = '';
     if (typeof RESEARCH !== 'undefined' && RESEARCH.marketData && RESEARCH.marketData[a.id]) {
         const data = RESEARCH.marketData[a.id];
@@ -535,8 +537,6 @@ function renderMessaging(a) {
     return html;
 }
 
-// ---- RESEARCH TABS ----
-
 function renderObjections(a) {
     if (typeof RESEARCH === 'undefined' || !RESEARCH.objections[a.id]) {
         return '<p style="color:var(--text-muted);padding:40px 0;text-align:center;">No objection data available.</p>';
@@ -583,26 +583,18 @@ function renderSocialProof(a) {
     const quotes = RESEARCH.socialProof[a.id];
     const themes = [...new Set(quotes.map(q => q.theme))];
     const themeLabels = {
-        compliment: 'Compliment Effect',
-        identity: 'Identity & Visibility',
-        addiction: 'Addiction / Obsession',
-        discovery: 'Discovery Stories',
-        ritual: 'Self-Care & Ritual',
-        hotel: 'Hotel / Luxury Fantasy',
-        switching: 'Switching Behavior',
-        gifting: 'Gifting Patterns',
-        dating: 'Dating & Attraction',
-        grief: 'Grief & Scent Memory',
-        menopause: 'Body Changes',
-        value: 'Price Justification',
-        transformation: 'Fresh Start / Transformation',
-        perfume: 'Scent as Perfume Replacement'
+        compliment: 'Compliment Effect', identity: 'Identity & Visibility',
+        addiction: 'Addiction / Obsession', discovery: 'Discovery Stories',
+        ritual: 'Self-Care & Ritual', hotel: 'Hotel / Luxury Fantasy',
+        switching: 'Switching Behavior', gifting: 'Gifting Patterns',
+        dating: 'Dating & Attraction', grief: 'Grief & Scent Memory',
+        menopause: 'Body Changes', value: 'Price Justification',
+        transformation: 'Fresh Start / Transformation', perfume: 'Scent as Perfume Replacement'
     };
 
     let html = `<div class="section-title">Social Proof Bank (${quotes.length} quotes)</div>`;
     html += `<p class="section-subtitle">Real customer quotes from Amazon, Reddit, TikTok, and forums — mapped to this avatar.</p>`;
 
-    // Group by theme
     themes.forEach(theme => {
         const themeQuotes = quotes.filter(q => q.theme === theme);
         html += `<div class="section-title" style="margin-top:24px">${themeLabels[theme] || theme} (${themeQuotes.length})</div>`;
@@ -626,7 +618,6 @@ function renderCompetitors(a) {
     }
 
     const comps = RESEARCH.competitors[a.id];
-
     return `
         <div class="section-title">Competitor Intelligence for ${a.name}</div>
         <p class="section-subtitle">What she's tried, why it failed, and how Maison Laundrin wins.</p>
@@ -689,7 +680,6 @@ function renderAds(a) {
 
 function renderTargeting(a) {
     let html = '';
-
     if (a.metaTargeting) {
         if (a.metaTargeting.interests && a.metaTargeting.interests.length) {
             html += `<div class="section-title">Meta Interests</div>`;
@@ -721,7 +711,6 @@ function renderTargeting(a) {
             });
         }
     }
-
     return html;
 }
 
@@ -732,60 +721,72 @@ function renderTargeting(a) {
 function renderPerformanceView() {
     if (typeof PERFORMANCE === 'undefined') return;
     const p = PERFORMANCE;
+    const hasData = p.lastSync !== null;
+    const el = document.getElementById('perf-content');
 
-    // Sync meta
-    const syncEl = document.getElementById('perf-sync-meta');
-    syncEl.textContent = p.lastSync ? `Last sync: ${p.lastSync}` : 'No data synced yet — say "sync my Meta data" to pull live metrics';
+    if (!hasData) {
+        el.innerHTML = `
+            <div class="view-header">
+                <h2 class="view-title">Performance Dashboard</h2>
+            </div>
+            ${renderEmptyState('No Performance Data Yet', 'Say "sync my Meta data" to pull live campaign metrics.<br><br>Campaigns using the naming convention <strong>{AvatarCode}_{Angle}_{Version}_{Variant}</strong> will be auto-mapped to avatars.<br><br>Example: <strong>CC_ChurchPew_v1_A</strong> = Compliment Collector')}
+        `;
+        return;
+    }
 
-    // KPI cards
-    const kpiEl = document.getElementById('perf-kpi-cards');
-    kpiEl.innerHTML = `
-        <div class="kpi-card">
-            <div class="kpi-value">${formatCurrency(p.overall.spend)}</div>
-            <div class="kpi-label">Total Spend</div>
+    let html = `
+        <div class="view-header">
+            <h2 class="view-title">Performance Dashboard</h2>
+            <div class="view-meta">Last sync: ${p.lastSync}</div>
         </div>
-        <div class="kpi-card">
-            <div class="kpi-value">${formatCurrency(p.overall.cpa)}</div>
-            <div class="kpi-label">CPA</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-value">${p.overall.roas ? p.overall.roas.toFixed(2) + 'x' : '—'}</div>
-            <div class="kpi-label">ROAS</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-value">${p.overall.purchases || 0}</div>
-            <div class="kpi-label">Purchases</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-value">${formatCurrency(p.overall.spend)}</div>
+                <div class="kpi-label">Total Spend</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${formatCurrency(p.overall.cpa)}</div>
+                <div class="kpi-label">CPA</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${p.overall.roas ? p.overall.roas.toFixed(2) + 'x' : '—'}</div>
+                <div class="kpi-label">ROAS</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${p.overall.purchases || 0}</div>
+                <div class="kpi-label">Purchases</div>
+            </div>
         </div>
     `;
 
     // Daily trend
-    const trendEl = document.getElementById('perf-daily-trend');
     if (p.dailyTrend.length > 0) {
-        trendEl.innerHTML = `
-            <div class="section-title" style="margin-top:0">Daily Trend (Last ${p.dailyTrend.length} Days)</div>
-            ${p.dailyTrend.map(d => `
-                <div class="trend-row">
-                    <span class="trend-date">${d.date}</span>
-                    <span class="trend-spend">${formatCurrency(d.spend)}</span>
-                    <span class="trend-purchases">${d.purchases} purch</span>
-                    <span class="trend-roas ${d.roas >= 2 ? 'kpi-trend up' : d.roas >= 1 ? 'kpi-trend flat' : 'kpi-trend down'}">${d.roas ? d.roas.toFixed(2) + 'x' : '—'}</span>
-                </div>
-            `).join('')}
+        html += `
+            <div class="daily-trend-section">
+                <div class="section-title" style="margin-top:0">Daily Trend (Last ${p.dailyTrend.length} Days)</div>
+                ${p.dailyTrend.map(d => `
+                    <div class="trend-row">
+                        <span class="trend-date">${d.date}</span>
+                        <span class="trend-spend">${formatCurrency(d.spend)}</span>
+                        <span class="trend-purchases">${d.purchases} purch</span>
+                        <span class="trend-roas ${d.roas >= 2 ? 'kpi-trend up' : d.roas >= 1 ? 'kpi-trend flat' : 'kpi-trend down'}">${d.roas ? d.roas.toFixed(2) + 'x' : '—'}</span>
+                    </div>
+                `).join('')}
+            </div>
         `;
-    } else {
-        trendEl.innerHTML = '';
     }
 
-    // Per-avatar performance grid
-    const avatarGridEl = document.getElementById('perf-avatar-grid');
+    // Per-avatar grid
     const avatarIds = Object.keys(p.avatars);
     if (avatarIds.length > 0) {
-        avatarGridEl.innerHTML = avatarIds.map(id => {
+        html += `<div class="section-title" style="margin-top:32px">Per-Avatar Performance</div>`;
+        html += `<div class="perf-avatar-grid">`;
+        html += avatarIds.map(id => {
             const ap = p.avatars[id];
             const avatar = AVATARS.find(a => a.id === parseInt(id));
             if (!avatar) return '';
             const trendClass = ap.trend || 'flat';
-            const trendLabel = trendClass === 'up' ? '↑' : trendClass === 'down' ? '↓' : '→';
+            const trendLabel = trendClass === 'up' ? '&#x2191;' : trendClass === 'down' ? '&#x2193;' : '&#x2192;';
             return `
                 <div class="perf-avatar-card" onclick="openProfile(${avatar.id})">
                     <div class="perf-avatar-name">
@@ -813,38 +814,34 @@ function renderPerformanceView() {
                 </div>
             `;
         }).join('');
-    } else {
-        avatarGridEl.innerHTML = renderEmptyState('No Avatar Data', 'Sync Meta Ads data to see per-avatar performance. Use campaign naming convention: {AvatarCode}_{Angle}_{Version}_{Variant}');
+        html += `</div>`;
     }
 
     // Leaderboard
-    const lbEl = document.getElementById('perf-leaderboard');
     if (p.leaderboard.top.length > 0 || p.leaderboard.bottom.length > 0) {
-        lbEl.innerHTML = `
-            <div class="leaderboard-col top">
-                <h3>Top Performers</h3>
-                ${p.leaderboard.top.map(item => {
-                    const avatar = AVATARS.find(a => a.id === item.avatarId);
-                    return `<div class="leaderboard-item">
-                        <span class="lb-name">${avatar ? avatar.emoji + ' ' : ''}${item.campaignName}</span>
-                        <span class="lb-roas good">${item.roas.toFixed(2)}x</span>
-                    </div>`;
-                }).join('')}
-            </div>
-            <div class="leaderboard-col bottom">
-                <h3>Needs Attention</h3>
-                ${p.leaderboard.bottom.map(item => {
-                    const avatar = AVATARS.find(a => a.id === item.avatarId);
-                    return `<div class="leaderboard-item">
-                        <span class="lb-name">${avatar ? avatar.emoji + ' ' : ''}${item.campaignName}</span>
-                        <span class="lb-roas bad">${item.roas.toFixed(2)}x</span>
-                    </div>`;
-                }).join('')}
-            </div>
-        `;
-    } else {
-        lbEl.innerHTML = renderEmptyState('No Leaderboard Data', 'Sync your Meta Ads campaigns to see top and bottom performers.');
+        html += `<div class="section-title" style="margin-top:32px">Ad Leaderboard</div>`;
+        html += `<div class="leaderboard-section">`;
+        html += `<div class="leaderboard-col top"><h3>Top Performers</h3>`;
+        html += p.leaderboard.top.map(item => {
+            const avatar = AVATARS.find(a => a.id === item.avatarId);
+            return `<div class="leaderboard-item">
+                <span class="lb-name">${avatar ? avatar.emoji + ' ' : ''}${item.campaignName}</span>
+                <span class="lb-roas good">${item.roas.toFixed(2)}x</span>
+            </div>`;
+        }).join('');
+        html += `</div>`;
+        html += `<div class="leaderboard-col bottom"><h3>Needs Attention</h3>`;
+        html += p.leaderboard.bottom.map(item => {
+            const avatar = AVATARS.find(a => a.id === item.avatarId);
+            return `<div class="leaderboard-item">
+                <span class="lb-name">${avatar ? avatar.emoji + ' ' : ''}${item.campaignName}</span>
+                <span class="lb-roas bad">${item.roas.toFixed(2)}x</span>
+            </div>`;
+        }).join('');
+        html += `</div></div>`;
     }
+
+    el.innerHTML = html;
 }
 
 // Avatar Performance Tab (inside profile)
@@ -911,11 +908,14 @@ function renderPipelineView() {
     const metaEl = document.getElementById('pipeline-meta');
     metaEl.textContent = PIPELINE.entries.length > 0
         ? `${PIPELINE.entries.length} entries`
-        : 'No entries yet — say "add quote: [text] from [source] for [avatar]"';
+        : '';
 
-    let entries = [...PIPELINE.entries];
+    renderPipelineFeed();
+}
 
-    // Apply filters
+function renderPipelineFeed() {
+    let entries = [...(PIPELINE.entries || [])];
+
     if (pipelineTypeFilter !== 'all') {
         entries = entries.filter(e => e.type === pipelineTypeFilter);
     }
@@ -923,17 +923,14 @@ function renderPipelineView() {
         entries = entries.filter(e => e.status === pipelineStatusFilter);
     }
 
-    // Sort reverse-chronological
     entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
     const feedEl = document.getElementById('pipeline-feed');
     if (entries.length === 0) {
-        feedEl.innerHTML = renderEmptyState(
-            'No Pipeline Entries',
-            pipelineTypeFilter !== 'all' || pipelineStatusFilter !== 'all'
-                ? 'No entries match the current filters.'
-                : 'Add quotes, insights, competitor intel, and ideas as you find them. Say "add quote: [text] from [source] for [avatar]".'
-        );
+        const msg = PIPELINE.entries.length === 0
+            ? 'Add research as you find it. Tell Claude:<br><br><strong>"add quote: [text] from [source] for [avatar]"</strong><br><strong>"add insight: [text] for [avatar]"</strong><br><strong>"add competitor: [brand] [details] for [avatar]"</strong>'
+            : 'No entries match the current filters.';
+        feedEl.innerHTML = renderEmptyState('No Pipeline Entries', msg);
         return;
     }
 
@@ -966,16 +963,6 @@ function renderPipelineView() {
 // PHASE 3: AD LAB
 // =============================================
 
-function populateAdLabAvatarFilter() {
-    const select = document.getElementById('adlab-avatar-filter');
-    AVATARS.forEach(a => {
-        const opt = document.createElement('option');
-        opt.value = a.id;
-        opt.textContent = `${a.emoji} ${a.name}`;
-        select.appendChild(opt);
-    });
-}
-
 function updateAdLabFilterUI() {
     document.querySelectorAll('[data-adstatus]').forEach(b => {
         b.classList.toggle('active', b.dataset.adstatus === adlabStatusFilter);
@@ -987,30 +974,72 @@ function updateAdLabFilterUI() {
 
 function renderAdLabView() {
     if (typeof AD_LIBRARY === 'undefined') return;
-
     const ads = AD_LIBRARY.ads;
+    const el = document.getElementById('adlab-content');
 
-    // Status bar
+    if (ads.length === 0) {
+        el.innerHTML = `
+            <div class="view-header">
+                <h2 class="view-title">Ad Lab</h2>
+            </div>
+            ${renderEmptyState('No Ads in Library Yet', 'Create ads by telling Claude:<br><br><strong>"create 3 new ads for Compliment Collector, story hook, church pew angle"</strong><br><br>Ads will be saved here with status tracking (Draft / Testing / Winner / Killed), export buttons, and avatar reference panels.')}
+        `;
+        return;
+    }
+
+    // Status counts
     const statusCounts = { draft: 0, testing: 0, winner: 0, killed: 0 };
-    ads.forEach(ad => {
-        if (statusCounts[ad.status] !== undefined) statusCounts[ad.status]++;
-    });
+    ads.forEach(ad => { if (statusCounts[ad.status] !== undefined) statusCounts[ad.status]++; });
 
-    const statusBarEl = document.getElementById('adlab-status-bar');
-    statusBarEl.innerHTML = `
-        <div class="adlab-status-pill draft"><span class="count">${statusCounts.draft}</span> Draft</div>
-        <div class="adlab-status-pill testing"><span class="count">${statusCounts.testing}</span> Testing</div>
-        <div class="adlab-status-pill winner"><span class="count">${statusCounts.winner}</span> Winners</div>
-        <div class="adlab-status-pill killed"><span class="count">${statusCounts.killed}</span> Killed</div>
+    // Avatar select options
+    const avatarOpts = AVATARS.map(a => `<option value="${a.id}" ${adlabAvatarFilter == a.id ? 'selected' : ''}>${a.emoji} ${a.name}</option>`).join('');
+
+    el.innerHTML = `
+        <div class="view-header">
+            <h2 class="view-title">Ad Lab</h2>
+            <div class="view-meta">${ads.length} total ads</div>
+        </div>
+        <div class="adlab-status-bar">
+            <div class="adlab-status-pill draft"><span class="count">${statusCounts.draft}</span> Draft</div>
+            <div class="adlab-status-pill testing"><span class="count">${statusCounts.testing}</span> Testing</div>
+            <div class="adlab-status-pill winner"><span class="count">${statusCounts.winner}</span> Winners</div>
+            <div class="adlab-status-pill killed"><span class="count">${statusCounts.killed}</span> Killed</div>
+        </div>
+        <div class="adlab-filters" id="adlab-filters">
+            <div class="pipeline-filter-group">
+                <span class="filter-label">Avatar:</span>
+                <select id="adlab-avatar-filter" class="filter-select">
+                    <option value="all" ${adlabAvatarFilter === 'all' ? 'selected' : ''}>All Avatars</option>
+                    ${avatarOpts}
+                </select>
+            </div>
+            <div class="pipeline-filter-group">
+                <span class="filter-label">Status:</span>
+                <button class="filter-tag ${adlabStatusFilter === 'all' ? 'active' : ''}" data-adstatus="all">All</button>
+                <button class="filter-tag ${adlabStatusFilter === 'draft' ? 'active' : ''}" data-adstatus="draft">Draft</button>
+                <button class="filter-tag ${adlabStatusFilter === 'testing' ? 'active' : ''}" data-adstatus="testing">Testing</button>
+                <button class="filter-tag ${adlabStatusFilter === 'winner' ? 'active' : ''}" data-adstatus="winner">Winner</button>
+                <button class="filter-tag ${adlabStatusFilter === 'killed' ? 'active' : ''}" data-adstatus="killed">Killed</button>
+            </div>
+            <div class="pipeline-filter-group">
+                <span class="filter-label">Format:</span>
+                <button class="filter-tag ${adlabFormatFilter === 'all' ? 'active' : ''}" data-adformat="all">All</button>
+                <button class="filter-tag ${adlabFormatFilter === 'single_image' ? 'active' : ''}" data-adformat="single_image">Image</button>
+                <button class="filter-tag ${adlabFormatFilter === 'video' ? 'active' : ''}" data-adformat="video">Video</button>
+                <button class="filter-tag ${adlabFormatFilter === 'carousel' ? 'active' : ''}" data-adformat="carousel">Carousel</button>
+            </div>
+        </div>
+        <div id="adlab-list" class="adlab-list"></div>
     `;
 
-    const metaEl = document.getElementById('adlab-meta');
-    metaEl.textContent = ads.length > 0
-        ? `${ads.length} total ads`
-        : 'No ads yet — say "create 3 new ads for [avatar], [hook type], [angle]"';
+    renderAdLabList();
+}
 
-    // Filter ads
-    let filtered = [...ads];
+function renderAdLabList() {
+    const listEl = document.getElementById('adlab-list');
+    if (!listEl) return;
+
+    let filtered = [...AD_LIBRARY.ads];
     if (adlabAvatarFilter !== 'all') {
         filtered = filtered.filter(ad => ad.avatarId === parseInt(adlabAvatarFilter));
     }
@@ -1021,14 +1050,8 @@ function renderAdLabView() {
         filtered = filtered.filter(ad => ad.format === adlabFormatFilter);
     }
 
-    const listEl = document.getElementById('adlab-list');
     if (filtered.length === 0) {
-        listEl.innerHTML = renderEmptyState(
-            'No Ads Found',
-            ads.length === 0
-                ? 'Create ads by saying "create 3 new ads for Compliment Collector, story hook, church pew angle".'
-                : 'No ads match the current filters.'
-        );
+        listEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px 0;">No ads match the current filters.</p>';
         return;
     }
 
@@ -1036,30 +1059,23 @@ function renderAdLabView() {
         const avatar = AVATARS.find(a => a.id === ad.avatarId);
         const avatarName = avatar ? `${avatar.emoji} ${avatar.name}` : 'Unknown';
 
-        // Build reference panel with avatar's top pain points and quotes
+        // Reference panel
         let refHtml = '';
         if (avatar) {
             const painSnippets = avatar.painPoints.slice(0, 2).map(pp => pp.title);
             const proofQuotes = (typeof RESEARCH !== 'undefined' && RESEARCH.socialProof[avatar.id])
                 ? RESEARCH.socialProof[avatar.id].slice(0, 2).map(q => `"${truncate(q.quote, 60)}"`)
                 : [];
-            const objSnippets = (typeof RESEARCH !== 'undefined' && RESEARCH.objections[avatar.id])
-                ? RESEARCH.objections[avatar.id].slice(0, 2).map(o => o.objection)
-                : [];
-
-            if (painSnippets.length || proofQuotes.length || objSnippets.length) {
+            if (painSnippets.length || proofQuotes.length) {
                 refHtml = `
                     <div class="adlab-ref-panel">
                         <div class="adlab-ref-title">Avatar Reference — ${avatarName}</div>
                         ${painSnippets.map(p => `<div class="adlab-ref-item">Pain: ${p}</div>`).join('')}
                         ${proofQuotes.map(q => `<div class="adlab-ref-item">Proof: ${q}</div>`).join('')}
-                        ${objSnippets.map(o => `<div class="adlab-ref-item">Objection: "${truncate(o, 50)}"</div>`).join('')}
                     </div>
                 `;
             }
         }
-
-        const exportText = buildMetaExport(ad);
 
         return `
             <div class="adlab-card" data-copy="${esc(ad.primaryText || '')}">
@@ -1076,25 +1092,12 @@ function renderAdLabView() {
                 ${ad.hook ? `<div class="adlab-card-hook">${ad.hook}</div>` : ''}
                 ${ad.primaryText ? `<div class="adlab-card-text">${ad.primaryText}</div>` : ''}
                 <div class="adlab-card-meta">
-                    <div class="ad-meta-item">
-                        <div class="ad-meta-label">Headline</div>
-                        <div class="ad-meta-value">${ad.headline || '—'}</div>
-                    </div>
-                    <div class="ad-meta-item">
-                        <div class="ad-meta-label">Description</div>
-                        <div class="ad-meta-value">${ad.description || '—'}</div>
-                    </div>
-                    <div class="ad-meta-item">
-                        <div class="ad-meta-label">CTA</div>
-                        <div class="ad-meta-value">${ad.cta || '—'}</div>
-                    </div>
-                    <div class="ad-meta-item">
-                        <div class="ad-meta-label">Destination</div>
-                        <div class="ad-meta-value">${ad.destination || '—'}</div>
-                    </div>
+                    <div class="ad-meta-item"><div class="ad-meta-label">Headline</div><div class="ad-meta-value">${ad.headline || '—'}</div></div>
+                    <div class="ad-meta-item"><div class="ad-meta-label">Description</div><div class="ad-meta-value">${ad.description || '—'}</div></div>
+                    <div class="ad-meta-item"><div class="ad-meta-label">CTA</div><div class="ad-meta-value">${ad.cta || '—'}</div></div>
+                    <div class="ad-meta-item"><div class="ad-meta-label">Destination</div><div class="ad-meta-value">${ad.destination || '—'}</div></div>
                 </div>
                 ${ad.creativeDirection ? `<div class="ad-creative-dir"><strong>Creative Direction:</strong> ${ad.creativeDirection}</div>` : ''}
-                ${ad.sourceInspiration ? `<div class="ad-creative-dir"><strong>Source:</strong> ${ad.sourceInspiration}</div>` : ''}
                 <button class="adlab-export-btn" data-ad-id="${ad.id}">Export for Meta</button>
                 ${refHtml}
             </div>
@@ -1125,64 +1128,70 @@ function exportAdForMeta(adId) {
 
 function renderTestingView() {
     if (typeof TESTING === 'undefined') return;
+    const el = document.getElementById('testing-content');
 
-    const metaEl = document.getElementById('testing-meta');
+    if (TESTING.tests.length === 0 && TESTING.learnings.length === 0) {
+        el.innerHTML = `
+            <div class="view-header">
+                <h2 class="view-title">Creative Testing</h2>
+            </div>
+            ${renderEmptyState('No Tests Yet', 'Track A/B tests and spot winning patterns. Tell Claude:<br><br><strong>"log test: CC story hook A vs question hook B, $200"</strong><br><br>As tests complete, patterns will emerge showing which hook types, angles, and avatars perform best.')}
+        `;
+        return;
+    }
+
     const activeTests = TESTING.tests.filter(t => t.status === 'active');
     const completedTests = TESTING.tests.filter(t => t.status === 'completed');
-    metaEl.textContent = TESTING.tests.length > 0
-        ? `${activeTests.length} active · ${completedTests.length} completed`
-        : 'No tests yet — say "log test: [avatar] [hook A] vs [hook B], $[budget]"';
 
-    // Pattern insights
-    renderTestingPatterns();
+    let html = `
+        <div class="view-header">
+            <h2 class="view-title">Creative Testing</h2>
+            <div class="view-meta">${activeTests.length} active &middot; ${completedTests.length} completed</div>
+        </div>
+    `;
+
+    // Patterns
+    html += renderTestingPatterns();
 
     // Active tests
-    const activeEl = document.getElementById('testing-active');
     if (activeTests.length > 0) {
-        activeEl.innerHTML = activeTests.map(t => renderTestCard(t)).join('');
-    } else {
-        activeEl.innerHTML = renderEmptyState('No Active Tests', 'Start a test by saying "log test: CC story hook A vs question hook B, $200".');
+        html += `<div class="section-title" style="margin-top:32px">Active Tests</div>`;
+        html += `<div class="testing-list">${activeTests.map(t => renderTestCard(t)).join('')}</div>`;
     }
 
     // Completed tests
-    const completedEl = document.getElementById('testing-completed');
     if (completedTests.length > 0) {
-        completedEl.innerHTML = completedTests.map(t => renderTestCard(t)).join('');
-    } else {
-        completedEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">No completed tests yet.</p>';
+        html += `<div class="section-title" style="margin-top:32px">Completed Tests</div>`;
+        html += `<div class="testing-list">${completedTests.map(t => renderTestCard(t)).join('')}</div>`;
     }
 
     // Learnings
-    const learningsEl = document.getElementById('testing-learnings');
     if (TESTING.learnings.length > 0) {
-        learningsEl.innerHTML = TESTING.learnings.map(l => `
+        html += `<div class="section-title" style="margin-top:32px">Learnings Log</div>`;
+        html += `<div class="learnings-list">${TESTING.learnings.map(l => `
             <div class="learning-entry">
                 <span class="learning-date">${l.date || ''}</span>
                 <span class="learning-text">${l.insight}</span>
                 ${l.category ? `<span class="learning-category">${l.category}</span>` : ''}
             </div>
-        `).join('');
-    } else {
-        learningsEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Learnings will appear here as tests complete.</p>';
+        `).join('')}</div>`;
     }
+
+    el.innerHTML = html;
 }
 
 function renderTestingPatterns() {
-    if (typeof TESTING === 'undefined') return;
-    const patternsEl = document.getElementById('testing-patterns');
     const patterns = TESTING.patterns;
-
     const hookEntries = Object.entries(patterns.byHookType || {});
     const avatarEntries = Object.entries(patterns.byAvatar || {});
+    const angleEntries = Object.entries(patterns.byAngle || {});
 
-    if (hookEntries.length === 0 && avatarEntries.length === 0) {
-        patternsEl.innerHTML = renderEmptyState('No Pattern Data', 'Complete tests to see winning patterns emerge across hook types, angles, and avatars.');
-        return;
+    if (hookEntries.length === 0 && avatarEntries.length === 0 && angleEntries.length === 0) {
+        return '';
     }
 
-    let html = '';
+    let html = `<div class="section-title">Pattern Insights</div><div class="testing-patterns">`;
 
-    // Hook type win rates
     if (hookEntries.length > 0) {
         const maxWinRate = Math.max(...hookEntries.map(([, v]) => v.winRate || 0), 1);
         html += `
@@ -1201,7 +1210,6 @@ function renderTestingPatterns() {
         `;
     }
 
-    // Avatar win rates
     if (avatarEntries.length > 0) {
         html += `
             <div class="pattern-card">
@@ -1213,7 +1221,7 @@ function renderTestingPatterns() {
                         <div class="pattern-bar-row">
                             <span class="pattern-bar-label" style="width:140px">${truncate(label, 18)}</span>
                             <div style="flex:1;font-size:0.75rem;color:var(--text-secondary)">
-                                ${data.tests} tests · ${data.wins} wins · CPA ${formatCurrency(data.avgCpa)} · ${data.avgRoas ? data.avgRoas.toFixed(1) + 'x' : '—'}
+                                ${data.tests} tests &middot; ${data.wins} wins &middot; CPA ${formatCurrency(data.avgCpa)} &middot; ${data.avgRoas ? data.avgRoas.toFixed(1) + 'x' : '—'}
                             </div>
                         </div>
                     `;
@@ -1222,8 +1230,6 @@ function renderTestingPatterns() {
         `;
     }
 
-    // Angle win rates
-    const angleEntries = Object.entries(patterns.byAngle || {});
     if (angleEntries.length > 0) {
         const maxAngleWin = Math.max(...angleEntries.map(([, v]) => v.winRate || 0), 1);
         html += `
@@ -1242,7 +1248,8 @@ function renderTestingPatterns() {
         `;
     }
 
-    patternsEl.innerHTML = html;
+    html += `</div>`;
+    return html;
 }
 
 function renderTestCard(test) {
@@ -1256,17 +1263,14 @@ function renderTestCard(test) {
                     <span class="test-status ${test.status}">${test.status}</span>
                     <span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">${avatarLabel}</span>
                 </div>
-                <span style="font-size:0.72rem;color:var(--text-muted)">${test.startDate || ''} ${test.endDate ? '→ ' + test.endDate : ''}</span>
+                <span style="font-size:0.72rem;color:var(--text-muted)">${test.startDate || ''} ${test.endDate ? '&rarr; ' + test.endDate : ''}</span>
             </div>
             <div class="test-hypothesis">${test.hypothesis || ''}</div>
             ${test.budget ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:12px">Budget: ${formatCurrency(test.budget)}</div>` : ''}
             <div class="test-variants">
                 ${(test.variants || []).map(v => `
                     <div class="test-variant ${test.winner === v.label ? 'winner-variant' : ''}">
-                        <div class="test-variant-label">
-                            Variant ${v.label}
-                            ${test.winner === v.label ? ' ★' : ''}
-                        </div>
+                        <div class="test-variant-label">Variant ${v.label}${test.winner === v.label ? ' &#9733;' : ''}</div>
                         ${v.description ? `<div class="test-variant-desc">${v.description}</div>` : ''}
                         ${v.hookType ? `<div class="test-variant-desc">${v.hookType} hook</div>` : ''}
                         <div class="test-variant-metrics">
@@ -1290,272 +1294,146 @@ function renderTestCard(test) {
 function renderHubView() {
     if (typeof INTEGRATIONS === 'undefined') return;
     const ig = INTEGRATIONS;
+    const el = document.getElementById('hub-content');
 
-    const syncEl = document.getElementById('hub-sync-meta');
-    syncEl.textContent = ig.lastSync ? `Last sync: ${ig.lastSync}` : 'No data synced yet — say "full sync" to pull from Shopify, Klaviyo, and Meta';
+    if (!ig.lastSync) {
+        el.innerHTML = `
+            <div class="view-header">
+                <h2 class="view-title">Integrations Hub</h2>
+            </div>
+            ${renderEmptyState('No Data Synced Yet', 'Pull cross-channel data by telling Claude:<br><br><strong>"full sync"</strong><br><br>This will connect to Shopify (orders, revenue, products), Klaviyo (subscribers, campaigns, flows), and Meta Ads (spend, ROAS) to build a unified view.')}
+        `;
+        return;
+    }
 
-    // Attribution bar
-    renderAttribution(ig);
+    let html = `
+        <div class="view-header">
+            <h2 class="view-title">Integrations Hub</h2>
+            <div class="view-meta">Last sync: ${ig.lastSync}</div>
+        </div>
+    `;
+
+    // Attribution
+    const attr = ig.attribution;
+    if (attr.totalRevenue > 0) {
+        const metaPct = attr.meta.percent || 0;
+        const emailPct = attr.email.percent || 0;
+        const organicPct = attr.organic.percent || 0;
+        html += `
+            <div class="section-title" style="margin-top:0">Revenue Attribution — ${formatCurrency(attr.totalRevenue)}</div>
+            <div class="attribution-section">
+                <div class="attribution-bar">
+                    ${metaPct > 0 ? `<div class="attribution-segment meta" style="flex:${metaPct}">Meta ${metaPct}%</div>` : ''}
+                    ${emailPct > 0 ? `<div class="attribution-segment email" style="flex:${emailPct}">Email ${emailPct}%</div>` : ''}
+                    ${organicPct > 0 ? `<div class="attribution-segment organic" style="flex:${organicPct}">Organic ${organicPct}%</div>` : ''}
+                </div>
+                <div class="attribution-legend">
+                    <div class="attribution-legend-item"><span class="attribution-legend-dot meta"></span>Meta Ads — ${formatCurrency(attr.meta.revenue)}</div>
+                    <div class="attribution-legend-item"><span class="attribution-legend-dot email"></span>Email — ${formatCurrency(attr.email.revenue)}</div>
+                    <div class="attribution-legend-item"><span class="attribution-legend-dot organic"></span>Organic — ${formatCurrency(attr.organic.revenue)}</div>
+                </div>
+            </div>
+        `;
+    }
 
     // Budget pacing
-    renderBudgetPacing(ig);
-
-    // Meta panel
-    renderMetaPanel(ig);
-
-    // Shopify panel
-    renderShopifyPanel(ig);
-
-    // Klaviyo panel
-    renderKlaviyoPanel(ig);
-
-    // Product leaderboard
-    renderProductLeaderboard(ig);
-}
-
-function renderAttribution(ig) {
-    const el = document.getElementById('hub-attribution');
-    const attr = ig.attribution;
-
-    if (!attr.totalRevenue) {
-        el.innerHTML = renderEmptyState('No Revenue Data', 'Sync all channels to see revenue attribution breakdown.');
-        return;
-    }
-
-    const metaPct = attr.meta.percent || 0;
-    const emailPct = attr.email.percent || 0;
-    const organicPct = attr.organic.percent || 0;
-
-    el.innerHTML = `
-        <div class="section-title" style="margin-top:0">Revenue Attribution — ${formatCurrency(attr.totalRevenue)}</div>
-        <div class="attribution-bar">
-            ${metaPct > 0 ? `<div class="attribution-segment meta" style="flex:${metaPct}">Meta ${metaPct}%</div>` : ''}
-            ${emailPct > 0 ? `<div class="attribution-segment email" style="flex:${emailPct}">Email ${emailPct}%</div>` : ''}
-            ${organicPct > 0 ? `<div class="attribution-segment organic" style="flex:${organicPct}">Organic ${organicPct}%</div>` : ''}
-        </div>
-        <div class="attribution-legend">
-            <div class="attribution-legend-item"><span class="attribution-legend-dot meta"></span>Meta Ads — ${formatCurrency(attr.meta.revenue)}</div>
-            <div class="attribution-legend-item"><span class="attribution-legend-dot email"></span>Email — ${formatCurrency(attr.email.revenue)}</div>
-            <div class="attribution-legend-item"><span class="attribution-legend-dot organic"></span>Organic — ${formatCurrency(attr.organic.revenue)}</div>
-        </div>
-    `;
-}
-
-function renderBudgetPacing(ig) {
-    const el = document.getElementById('hub-budget');
     const bp = ig.budgetPacing;
-
-    if (!bp.monthlyBudget) {
-        el.innerHTML = '';
-        return;
-    }
-
-    const pct = bp.monthlyBudget > 0 ? Math.min((bp.spent / bp.monthlyBudget) * 100, 100) : 0;
-
-    el.innerHTML = `
-        <div class="budget-header">
-            <span class="budget-title">Budget Pacing</span>
-            <span class="budget-status ${bp.onTrack ? 'on-track' : 'over-pace'}">${bp.onTrack ? 'On Track' : 'Over Pace'}</span>
-        </div>
-        <div class="budget-bar">
-            <div class="budget-bar-fill" style="width:${pct}%"></div>
-        </div>
-        <div class="budget-metrics">
-            <div class="budget-metric">
-                <div class="budget-metric-value">${formatCurrency(bp.monthlyBudget)}</div>
-                <div class="budget-metric-label">Monthly Budget</div>
+    if (bp.monthlyBudget > 0) {
+        const pct = Math.min((bp.spent / bp.monthlyBudget) * 100, 100);
+        html += `
+            <div class="budget-section">
+                <div class="budget-header">
+                    <span class="budget-title">Budget Pacing</span>
+                    <span class="budget-status ${bp.onTrack ? 'on-track' : 'over-pace'}">${bp.onTrack ? 'On Track' : 'Over Pace'}</span>
+                </div>
+                <div class="budget-bar"><div class="budget-bar-fill" style="width:${pct}%"></div></div>
+                <div class="budget-metrics">
+                    <div class="budget-metric"><div class="budget-metric-value">${formatCurrency(bp.monthlyBudget)}</div><div class="budget-metric-label">Monthly Budget</div></div>
+                    <div class="budget-metric"><div class="budget-metric-value">${formatCurrency(bp.spent)}</div><div class="budget-metric-label">Spent</div></div>
+                    <div class="budget-metric"><div class="budget-metric-value">${formatCurrency(bp.remaining)}</div><div class="budget-metric-label">Remaining</div></div>
+                    <div class="budget-metric"><div class="budget-metric-value">${formatCurrency(bp.dailyPace)}</div><div class="budget-metric-label">Daily Pace</div></div>
+                    <div class="budget-metric"><div class="budget-metric-value">${bp.daysRemaining}</div><div class="budget-metric-label">Days Left</div></div>
+                </div>
             </div>
-            <div class="budget-metric">
-                <div class="budget-metric-value">${formatCurrency(bp.spent)}</div>
-                <div class="budget-metric-label">Spent</div>
-            </div>
-            <div class="budget-metric">
-                <div class="budget-metric-value">${formatCurrency(bp.remaining)}</div>
-                <div class="budget-metric-label">Remaining</div>
-            </div>
-            <div class="budget-metric">
-                <div class="budget-metric-value">${formatCurrency(bp.dailyPace)}</div>
-                <div class="budget-metric-label">Daily Pace</div>
-            </div>
-            <div class="budget-metric">
-                <div class="budget-metric-value">${bp.daysRemaining}</div>
-                <div class="budget-metric-label">Days Left</div>
-            </div>
-        </div>
-    `;
-}
-
-function renderMetaPanel(ig) {
-    const el = document.getElementById('hub-meta');
-    const m = ig.meta;
-
-    el.innerHTML = `
-        <div class="channel-kpis">
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${formatCurrency(m.totalSpend)}</div>
-                <div class="channel-kpi-label">Spend</div>
-            </div>
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${formatCurrency(m.totalRevenue)}</div>
-                <div class="channel-kpi-label">Revenue</div>
-            </div>
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${m.roas ? m.roas.toFixed(2) + 'x' : '—'}</div>
-                <div class="channel-kpi-label">ROAS</div>
-            </div>
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${m.activeCampaigns || 0}</div>
-                <div class="channel-kpi-label">Active Campaigns</div>
-            </div>
-        </div>
-    `;
-}
-
-function renderShopifyPanel(ig) {
-    const el = document.getElementById('hub-shopify');
-    const s = ig.shopify;
-
-    let trendHtml = '';
-    if (s.monthlyTrend && s.monthlyTrend.length > 0) {
-        trendHtml = `
-            <table class="channel-table">
-                <thead><tr><th>Month</th><th>Revenue</th><th>Orders</th><th>AOV</th></tr></thead>
-                <tbody>
-                    ${s.monthlyTrend.map(m => `
-                        <tr>
-                            <td>${m.month}</td>
-                            <td>${formatCurrency(m.revenue)}</td>
-                            <td>${m.orders}</td>
-                            <td>${formatCurrency(m.aov)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
         `;
     }
 
-    el.innerHTML = `
-        <div class="channel-kpis">
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${formatCurrency(s.totalRevenue)}</div>
-                <div class="channel-kpi-label">Total Revenue</div>
-            </div>
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${s.totalOrders || 0}</div>
-                <div class="channel-kpi-label">Orders</div>
-            </div>
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${formatCurrency(s.aov)}</div>
-                <div class="channel-kpi-label">AOV</div>
+    // Channel panels
+    const m = ig.meta;
+    html += `
+        <div class="section-title" style="margin-top:32px">Meta Ads</div>
+        <div class="channel-panel">
+            <div class="channel-kpis">
+                <div class="channel-kpi"><div class="channel-kpi-value">${formatCurrency(m.totalSpend)}</div><div class="channel-kpi-label">Spend</div></div>
+                <div class="channel-kpi"><div class="channel-kpi-value">${formatCurrency(m.totalRevenue)}</div><div class="channel-kpi-label">Revenue</div></div>
+                <div class="channel-kpi"><div class="channel-kpi-value">${m.roas ? m.roas.toFixed(2) + 'x' : '—'}</div><div class="channel-kpi-label">ROAS</div></div>
+                <div class="channel-kpi"><div class="channel-kpi-value">${m.activeCampaigns || 0}</div><div class="channel-kpi-label">Active Campaigns</div></div>
             </div>
         </div>
-        ${trendHtml}
     `;
-}
 
-function renderKlaviyoPanel(ig) {
-    const el = document.getElementById('hub-klaviyo');
+    const s = ig.shopify;
+    let shopifyTrend = '';
+    if (s.monthlyTrend && s.monthlyTrend.length > 0) {
+        shopifyTrend = `<table class="channel-table"><thead><tr><th>Month</th><th>Revenue</th><th>Orders</th><th>AOV</th></tr></thead><tbody>${s.monthlyTrend.map(m => `<tr><td>${m.month}</td><td>${formatCurrency(m.revenue)}</td><td>${m.orders}</td><td>${formatCurrency(m.aov)}</td></tr>`).join('')}</tbody></table>`;
+    }
+    html += `
+        <div class="section-title" style="margin-top:32px">Shopify</div>
+        <div class="channel-panel">
+            <div class="channel-kpis">
+                <div class="channel-kpi"><div class="channel-kpi-value">${formatCurrency(s.totalRevenue)}</div><div class="channel-kpi-label">Total Revenue</div></div>
+                <div class="channel-kpi"><div class="channel-kpi-value">${s.totalOrders || 0}</div><div class="channel-kpi-label">Orders</div></div>
+                <div class="channel-kpi"><div class="channel-kpi-value">${formatCurrency(s.aov)}</div><div class="channel-kpi-label">AOV</div></div>
+            </div>
+            ${shopifyTrend}
+        </div>
+    `;
+
     const k = ig.klaviyo;
-
     let flowsHtml = '';
     if (k.flows && k.flows.length > 0) {
-        flowsHtml = `
-            <table class="channel-table">
-                <thead><tr><th>Flow</th><th>Recipients</th><th>Conv Rate</th><th>Revenue</th></tr></thead>
-                <tbody>
-                    ${k.flows.map(f => `
-                        <tr>
-                            <td>${f.name}</td>
-                            <td>${f.activeRecipients}</td>
-                            <td>${f.conversionRate ? f.conversionRate.toFixed(1) + '%' : '—'}</td>
-                            <td>${formatCurrency(f.revenue)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
+        flowsHtml = `<table class="channel-table"><thead><tr><th>Flow</th><th>Recipients</th><th>Conv Rate</th><th>Revenue</th></tr></thead><tbody>${k.flows.map(f => `<tr><td>${f.name}</td><td>${f.activeRecipients}</td><td>${f.conversionRate ? f.conversionRate.toFixed(1) + '%' : '—'}</td><td>${formatCurrency(f.revenue)}</td></tr>`).join('')}</tbody></table>`;
     }
-
-    let campaignsHtml = '';
-    if (k.campaigns && k.campaigns.length > 0) {
-        campaignsHtml = `
-            <table class="channel-table">
-                <thead><tr><th>Campaign</th><th>Sent</th><th>Open Rate</th><th>Click Rate</th><th>Revenue</th></tr></thead>
-                <tbody>
-                    ${k.campaigns.map(c => `
-                        <tr>
-                            <td>${c.name}</td>
-                            <td>${c.sent}</td>
-                            <td>${c.openRate ? c.openRate.toFixed(1) + '%' : '—'}</td>
-                            <td>${c.clickRate ? c.clickRate.toFixed(1) + '%' : '—'}</td>
-                            <td>${formatCurrency(c.revenue)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
-    }
-
-    const growthClass = k.subscriberGrowth > 0 ? 'positive' : k.subscriberGrowth < 0 ? 'negative' : '';
-
-    el.innerHTML = `
-        <div class="channel-kpis">
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${k.totalSubscribers ? k.totalSubscribers.toLocaleString() : '0'}</div>
-                <div class="channel-kpi-label">Subscribers</div>
+    html += `
+        <div class="section-title" style="margin-top:32px">Klaviyo</div>
+        <div class="channel-panel">
+            <div class="channel-kpis">
+                <div class="channel-kpi"><div class="channel-kpi-value">${k.totalSubscribers ? k.totalSubscribers.toLocaleString() : '0'}</div><div class="channel-kpi-label">Subscribers</div></div>
+                <div class="channel-kpi"><div class="channel-kpi-value">${formatCurrency(k.totalEmailRevenue)}</div><div class="channel-kpi-label">Email Revenue</div></div>
             </div>
-            <div class="channel-kpi">
-                <div class="channel-kpi-value">${formatCurrency(k.totalEmailRevenue)}</div>
-                <div class="channel-kpi-label">Email Revenue</div>
-            </div>
+            ${flowsHtml}
         </div>
-        ${k.subscriberGrowth ? `
-            <div class="subscriber-trend">
-                <span style="font-size:0.75rem;color:var(--text-muted)">Growth:</span>
-                <span class="growth-value ${growthClass}">${k.subscriberGrowth > 0 ? '+' : ''}${k.subscriberGrowth.toFixed(1)}%</span>
-            </div>
-        ` : ''}
-        ${flowsHtml}
-        ${campaignsHtml}
     `;
-}
 
-function renderProductLeaderboard(ig) {
-    const el = document.getElementById('hub-products');
-    const products = ig.shopify.topProducts || [];
-
-    if (products.length === 0) {
-        el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">No product data yet.</p>';
-        return;
+    // Products
+    const products = s.topProducts || [];
+    if (products.length > 0) {
+        html += `<div class="section-title" style="margin-top:32px">Product Leaderboard</div>`;
+        html += `<div class="product-leaderboard">${products.map(p => `
+            <div class="product-row">
+                <span class="product-name">${p.name}${p.variant ? ' — ' + p.variant : ''}</span>
+                <span class="product-revenue">${formatCurrency(p.revenue)}</span>
+                <span class="product-units">${p.unitsSold} units</span>
+            </div>
+        `).join('')}</div>`;
     }
 
-    el.innerHTML = products.map(p => `
-        <div class="product-row">
-            <span class="product-name">${p.name}${p.variant ? ` — ${p.variant}` : ''}</span>
-            <span class="product-revenue">${formatCurrency(p.revenue)}</span>
-            <span class="product-units">${p.unitsSold} units</span>
-        </div>
-    `).join('');
+    el.innerHTML = html;
 }
 
 // =============================================
-// SEARCH (expanded for all data sources)
+// SEARCH
 // =============================================
 
 function handleSearch(e) {
     const q = e.target.value.trim().toLowerCase();
     if (q.length < 2) {
-        showView('dashboard');
-        // Restore nav state
-        document.querySelectorAll('.nav-pill').forEach(p => {
-            p.classList.toggle('active', p.dataset.nav === currentNav);
-        });
+        setNav(currentNav);
         return;
     }
 
     const results = [];
     AVATARS.forEach(a => {
-        // Search through all existing text fields
         const searchFields = [
             { context: 'Core Wound', text: a.coreWound },
             { context: 'Tagline', text: a.tagline },
@@ -1575,10 +1453,9 @@ function handleSearch(e) {
             ...(a.beliefs ? a.beliefs.current.map(b => ({ context: 'Current Belief', text: b })) : []),
             ...(a.beliefs ? a.beliefs.target.map(b => ({ context: 'Target Belief', text: b })) : []),
             ...(a.messagingFramework ? (a.messagingFramework.dos || []).map(d => ({ context: 'Messaging Do', text: d })) : []),
-            ...(a.messagingFramework ? (a.messagingFramework.donts || []).map(d => ({ context: 'Messaging Don\'t', text: d })) : []),
+            ...(a.messagingFramework ? (a.messagingFramework.donts || []).map(d => ({ context: "Messaging Don't", text: d })) : []),
         ];
 
-        // Add research data to search
         if (typeof RESEARCH !== 'undefined') {
             if (RESEARCH.objections[a.id]) {
                 RESEARCH.objections[a.id].forEach(obj => {
@@ -1606,60 +1483,43 @@ function handleSearch(e) {
 
         searchFields.forEach(field => {
             if (field.text && field.text.toLowerCase().includes(q)) {
-                results.push({
-                    avatar: a,
-                    context: field.context,
-                    text: field.text,
-                    query: q
-                });
+                results.push({ avatar: a, context: field.context, text: field.text, query: q });
             }
         });
     });
 
-    // Search pipeline entries
+    // Pipeline
     if (typeof PIPELINE !== 'undefined') {
         PIPELINE.entries.forEach(entry => {
             if (entry.content && entry.content.toLowerCase().includes(q)) {
-                const avatarNames = (entry.avatarIds || []).map(id => {
-                    const a = AVATARS.find(av => av.id === id);
-                    return a ? a.name : '';
-                }).filter(Boolean).join(', ');
                 results.push({
                     avatar: { emoji: '📋', name: 'Pipeline', id: null },
-                    context: `${entry.type} — ${avatarNames || 'Untagged'}`,
+                    context: entry.type,
                     text: entry.content,
-                    query: q,
-                    isPipeline: true
+                    query: q
                 });
             }
         });
     }
 
-    // Search ad library
+    // Ad Library
     if (typeof AD_LIBRARY !== 'undefined') {
         AD_LIBRARY.ads.forEach(ad => {
-            const fields = [
-                { context: 'Ad Lab — Hook', text: ad.hook },
-                { context: 'Ad Lab — Primary Text', text: ad.primaryText },
-                { context: 'Ad Lab — Headline', text: ad.headline },
-                { context: 'Ad Lab — Angle', text: ad.angle },
-            ];
-            fields.forEach(field => {
+            [{ context: 'Ad Lab — Hook', text: ad.hook }, { context: 'Ad Lab — Copy', text: ad.primaryText }, { context: 'Ad Lab — Headline', text: ad.headline }].forEach(field => {
                 if (field.text && field.text.toLowerCase().includes(q)) {
                     const avatar = AVATARS.find(a => a.id === ad.avatarId);
                     results.push({
                         avatar: avatar || { emoji: '📝', name: 'Ad Lab', id: null },
                         context: `${field.context} [${ad.status}]`,
                         text: field.text,
-                        query: q,
-                        isAdLab: true
+                        query: q
                     });
                 }
             });
         });
     }
 
-    // Search testing learnings
+    // Learnings
     if (typeof TESTING !== 'undefined') {
         TESTING.learnings.forEach(l => {
             if (l.insight && l.insight.toLowerCase().includes(q)) {
@@ -1667,8 +1527,7 @@ function handleSearch(e) {
                     avatar: { emoji: '🧪', name: 'Testing', id: null },
                     context: `Learning — ${l.category || ''}`,
                     text: l.insight,
-                    query: q,
-                    isTesting: true
+                    query: q
                 });
             }
         });
@@ -1691,7 +1550,7 @@ function renderSearchResults(results, query) {
         const highlighted = highlightText(r.text, r.query);
         const onclick = r.avatar.id ? `onclick="openProfile(${r.avatar.id})"` : '';
         return `
-        <div class="search-result-item" ${onclick}>
+        <div class="search-result-item" ${onclick} style="${r.avatar.id ? 'cursor:pointer' : ''}">
             <div class="sr-avatar">${r.avatar.emoji} ${r.avatar.name}</div>
             <div class="sr-context">${r.context}</div>
             <div class="sr-text">${truncate(highlighted, 200)}</div>
@@ -1701,7 +1560,6 @@ function renderSearchResults(results, query) {
 
 function clearSearch() {
     document.getElementById('search').value = '';
-    // Return to last active nav
     setNav(currentNav);
 }
 
@@ -1739,13 +1597,15 @@ function debounce(fn, ms) {
 }
 
 function formatCurrency(val) {
-    if (!val && val !== 0) return '$0';
+    if (!val && val !== 0) return '—';
+    if (val === 0) return '$0';
     return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 function renderEmptyState(title, text) {
     return `
         <div class="empty-state">
+            <div class="empty-state-icon">&#x2014;</div>
             <div class="empty-state-title">${title}</div>
             <div class="empty-state-text">${text}</div>
         </div>

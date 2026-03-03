@@ -36,7 +36,6 @@
 
         <!-- DASHBOARD VIEW (Avatars) -->
         <main id="dashboard" class="view active">
-            <!-- Theme Filters -->
             <div class="filter-bar" id="filter-bar">
                 <span class="filter-label">Filter by theme:</span>
                 <button class="filter-tag active" data-filter="all">All Avatars</button>
@@ -47,23 +46,13 @@
             <div class="tier-label tier-2">Tier 2 — Niche Pain Points</div>
             <div id="grid-tier2" class="avatar-grid"></div>
 
-            <!-- Competitor Overview -->
             <div class="tier-label" style="margin-top:48px;color:var(--accent-blue)">Competitive Landscape</div>
             <div id="competitor-overview"></div>
         </main>
 
         <!-- PERFORMANCE VIEW -->
         <main id="performance-view" class="view">
-            <div class="view-header">
-                <h2 class="view-title">Performance Dashboard</h2>
-                <div class="view-meta" id="perf-sync-meta"></div>
-            </div>
-            <div id="perf-kpi-cards" class="kpi-grid"></div>
-            <div id="perf-daily-trend" class="daily-trend-section"></div>
-            <div class="section-title" style="margin-top:32px">Per-Avatar Performance</div>
-            <div id="perf-avatar-grid" class="perf-avatar-grid"></div>
-            <div class="section-title" style="margin-top:32px">Ad Leaderboard</div>
-            <div id="perf-leaderboard" class="leaderboard-section"></div>
+            <div id="perf-content"></div>
         </main>
 
         <!-- PIPELINE VIEW (Research) -->
@@ -95,71 +84,17 @@
 
         <!-- AD LAB VIEW -->
         <main id="adlab-view" class="view">
-            <div class="view-header">
-                <h2 class="view-title">Ad Lab</h2>
-                <div class="view-meta" id="adlab-meta"></div>
-            </div>
-            <div id="adlab-status-bar" class="adlab-status-bar"></div>
-            <div class="adlab-filters" id="adlab-filters">
-                <div class="pipeline-filter-group">
-                    <span class="filter-label">Avatar:</span>
-                    <select id="adlab-avatar-filter" class="filter-select">
-                        <option value="all">All Avatars</option>
-                    </select>
-                </div>
-                <div class="pipeline-filter-group">
-                    <span class="filter-label">Status:</span>
-                    <button class="filter-tag active" data-adstatus="all">All</button>
-                    <button class="filter-tag" data-adstatus="draft">Draft</button>
-                    <button class="filter-tag" data-adstatus="testing">Testing</button>
-                    <button class="filter-tag" data-adstatus="winner">Winner</button>
-                    <button class="filter-tag" data-adstatus="killed">Killed</button>
-                </div>
-                <div class="pipeline-filter-group">
-                    <span class="filter-label">Format:</span>
-                    <button class="filter-tag active" data-adformat="all">All</button>
-                    <button class="filter-tag" data-adformat="single_image">Image</button>
-                    <button class="filter-tag" data-adformat="video">Video</button>
-                    <button class="filter-tag" data-adformat="carousel">Carousel</button>
-                </div>
-            </div>
-            <div id="adlab-list" class="adlab-list"></div>
+            <div id="adlab-content"></div>
         </main>
 
         <!-- TESTING VIEW -->
         <main id="testing-view" class="view">
-            <div class="view-header">
-                <h2 class="view-title">Creative Testing</h2>
-                <div class="view-meta" id="testing-meta"></div>
-            </div>
-            <div class="section-title">Pattern Insights</div>
-            <div id="testing-patterns" class="testing-patterns"></div>
-            <div class="section-title" style="margin-top:32px">Active Tests</div>
-            <div id="testing-active" class="testing-list"></div>
-            <div class="section-title" style="margin-top:32px">Completed Tests</div>
-            <div id="testing-completed" class="testing-list"></div>
-            <div class="section-title" style="margin-top:32px">Learnings Log</div>
-            <div id="testing-learnings" class="learnings-list"></div>
+            <div id="testing-content"></div>
         </main>
 
         <!-- HUB VIEW (Integrations) -->
         <main id="hub-view" class="view">
-            <div class="view-header">
-                <h2 class="view-title">Integrations Hub</h2>
-                <div class="view-meta" id="hub-sync-meta"></div>
-            </div>
-            <div id="hub-attribution" class="attribution-section"></div>
-            <div id="hub-budget" class="budget-section"></div>
-            <div class="hub-channels">
-                <div class="section-title" style="margin-top:32px">Meta Ads</div>
-                <div id="hub-meta" class="channel-panel"></div>
-                <div class="section-title" style="margin-top:32px">Shopify</div>
-                <div id="hub-shopify" class="channel-panel"></div>
-                <div class="section-title" style="margin-top:32px">Klaviyo</div>
-                <div id="hub-klaviyo" class="channel-panel"></div>
-            </div>
-            <div class="section-title" style="margin-top:32px">Product Leaderboard</div>
-            <div id="hub-products" class="product-leaderboard"></div>
+            <div id="hub-content"></div>
         </main>
 
         <!-- SEARCH RESULTS VIEW -->
@@ -174,7 +109,7 @@
         <!-- PROFILE VIEW -->
         <main id="profile" class="view">
             <div class="profile-nav">
-                <button class="back-btn" id="back-btn">&larr; All Avatars</button>
+                <button class="back-btn" id="back-btn">&larr; Back</button>
                 <div class="profile-nav-arrows">
                     <button class="nav-arrow" id="prev-btn">&larr; Prev</button>
                     <button class="nav-arrow" id="next-btn">Next &rarr;</button>

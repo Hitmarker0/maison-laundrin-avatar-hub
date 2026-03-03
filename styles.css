@@ -42,8 +42,7 @@ body {
 
 /* HEADER */
 #header {
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 100;
     background: var(--bg-primary);
     border-bottom: 1px solid var(--border);
@@ -473,13 +472,22 @@ body {
 
 .content-block:hover .copy-btn,
 .quote-block:hover .copy-btn,
-.ad-card:hover .copy-btn {
+.ad-card:hover .copy-btn,
+.adlab-card:hover .copy-btn,
+.pipeline-entry:hover .copy-btn,
+.objection-text:hover .copy-btn,
+.counter-text:hover .copy-btn {
     opacity: 1;
 }
 
 .copy-btn:hover {
     border-color: var(--gold-dim);
     color: var(--gold);
+}
+
+/* Always show copy buttons on touch devices */
+@media (hover: none) {
+    .copy-btn { opacity: 0.7; }
 }
 
 /* AD CARDS */
@@ -1071,7 +1079,7 @@ body {
    ============================================= */
 .top-nav {
     position: sticky;
-    top: 65px;
+    top: 0;
     z-index: 99;
     background: var(--bg-primary);
     border-bottom: 1px solid var(--border);
@@ -2088,25 +2096,37 @@ body {
     text-align: center;
     padding: 60px 20px;
     color: var(--text-muted);
+    background: var(--bg-card);
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-lg);
+    margin: 16px 0;
 }
 
 .empty-state-icon {
-    font-size: 2rem;
+    font-size: 1.4rem;
     margin-bottom: 12px;
-    opacity: 0.4;
+    opacity: 0.3;
+    letter-spacing: 8px;
 }
 
 .empty-state-title {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
+    font-size: 1rem;
+    color: var(--cream);
+    margin-bottom: 10px;
+    font-weight: 500;
 }
 
 .empty-state-text {
-    font-size: 0.78rem;
-    line-height: 1.5;
-    max-width: 400px;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    max-width: 440px;
     margin: 0 auto;
+    color: var(--text-secondary);
+}
+
+.empty-state-text strong {
+    color: var(--gold);
+    font-weight: 500;
 }
 
 /* =============================================
@@ -2123,8 +2143,9 @@ body {
         max-width: 100%;
     }
 
-    .top-nav { top: 0; position: relative; padding: 0 12px; }
+    .top-nav { padding: 0 12px; }
     .nav-pill { padding: 6px 14px; font-size: 0.72rem; }
+    .view { padding: 16px; }
 
     .avatar-grid {
         grid-template-columns: 1fr;
